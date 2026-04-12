@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mixed signals</title>
+
+  <meta property="og:title" content="mixed signals">
+  <meta property="og:description" content="interpret at your own risk">
+  <meta property="og:image" content="preview.png">
+  <meta property="og:type" content="website">
+
+  <style>
+    body{
+      margin:0;
+      background:#fff;
+      color:#000;
+      font-family:"Times New Roman", serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:100vh;
+      text-align:center;
+      cursor:pointer;
+    }
+
+    .container{
+      max-width:560px;
+      padding:20px;
+    }
+
+    #text{
+      font-size:1.65rem;
+      line-height:1.42;
+      min-height:4.2rem;
+    }
+
+    button{
+      margin-top:22px;
+      padding:8px 14px;
+      font-family:"Times New Roman", serif;
+      font-size:1rem;
+      border:1px solid #000;
+      background:#fff;
+      cursor:pointer;
+      display:none;
+    }
+
+    button:hover{
+      background:#000;
+      color:#fff;
+    }
+
+    .footer{
+      position:fixed;
+      bottom:20px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:.9rem;
+      opacity:.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="text">click</div>
+    <button id="learn">learn more</button>
+  </div>
+
+  <div class="footer">♡ taylor</div>
+
+  <script>
+    const text = document.getElementById("text");
+    const button = document.getElementById("learn");
+
+    const labels = ["learn more", "analyze", "investigate", "expand"];
+
+    const signals = [
+      { text: "you seem stable", url: "https://en.wikipedia.org/wiki/Homeostasis", tag: "neutral" },
+      { text: "i could ruin my life for this", url: "https://en.wikipedia.org/wiki/Impulsivity", tag: "unstable" },
+      { text: "you look like you read", url: "https://en.wikipedia.org/wiki/Cognitive_bias", tag: "intellectual" },
+      { text: "i don’t trust this energy", url: "https://en.wikipedia.org/wiki/Uncanny_valley", tag: "suspicious" },
+      { text: "this feels like a pattern", url: "https://en.wikipedia.org/wiki/Pattern_recognition", tag: "intellectual" },
+      { text: "you’re either really smart or just tall", url: "https://en.wikipedia.org/wiki/Dunning%E2%80%93Kruger_effect", tag: "intellectual" },
+      { text: "i would text back faster for you", url: "https://en.wikipedia.org/wiki/Dopamine", tag: "flirty" },
+      { text: "this is either nothing or everything", url: "https://en.wikipedia.org/wiki/Quantum_superposition", tag: "unstable" },
+      { text: "you seem like you need to be observed", url: "https://en.wikipedia.org/wiki/Observer_effect_(physics)", tag: "suspicious" },
+      { text: "this is giving temporary", url: "https://en.wikipedia.org/wiki/Entropy", tag: "neutral" },
+      { text: "you’re not boring but you could be", url: "https://en.wikipedia.org/wiki/Regression_toward_the_mean", tag: "suspicious" },
+      { text: "i respect the restraint", url: "https://en.wikipedia.org/wiki/Delayed_gratification", tag: "neutral" },
+      { text: "you would be bad for me", url: "https://en.wikipedia.org/wiki/Risk", tag: "flirty" },
+      { text: "this feels like a test", url: "https://en.wikipedia.org/wiki/Experiment", tag: "suspicious" },
+      { text: "i would analyze this for days", url: "https://en.wikipedia.org/wiki/Overthinking", tag: "intellectual" },
+      { text: "this is suspiciously calm", url: "https://en.wikipedia.org/wiki/Calm", tag: "suspicious" },
+      { text: "you seem like a variable", url: "https://en.wikipedia.org/wiki/Variable_(mathematics)", tag: "intellectual" },
+      { text: "this has potential energy", url: "https://en.wikipedia.org/wiki/Potential_energy", tag: "flirty" },
+      { text: "i don’t think you’re done yet", url: "https://en.wikipedia.org/wiki/Incomplete", tag: "flirty" },
+      { text: "this is either confidence or delusion", url: "https://en.wikipedia.org/wiki/Delusion", tag: "unstable" },
+      { text: "i could fix this but i won’t", url: "https://en.wikipedia.org/wiki/Boundaries", tag: "flirty" },
+      { text: "this is almost interesting", url: "https://en.wikipedia.org/wiki/Curiosity", tag: "neutral" },
+      { text: "you would do well under pressure", url: "https://en.wikipedia.org/wiki/Pressure", tag: "flirty" },
+      { text: "i’m not convinced yet", url: "https://en.wikipedia.org/wiki/Skepticism", tag: "suspicious" }
+    ];
+
+    const rareSignals = [
+      { text: "you want this to mean something", url: "https://en.wikipedia.org/wiki/Apophenia" },
+      { text: "you keep looking for yourself in random data", url: "https://en.wikipedia.org/wiki/Projection_(psychology)" },
+      { text: "this is less about them now", url: "https://en.wikipedia.org/wiki/Transference" },
+      { text: "you stayed longer than expected", url: "https://en.wikipedia.org/wiki/Attention" },
+      { text: "interesting that you picked another one", url: "https://en.wikipedia.org/wiki/Reinforcement" }
+    ];
+
+    const userState = {
+      visits: Number(localStorage.getItem("mixedSignalsVisits") || 0) + 1,
+      totalClicks: Number(localStorage.getItem("mixedSignalsTotalClicks") || 0),
+      tagCounts: JSON.parse(localStorage.getItem("mixedSignalsTagCounts") || '{"flirty":0,"intellectual":0,"suspicious":0,"unstable":0,"neutral":0}')
+    };
+
+    localStorage.setItem("mixedSignalsVisits", userState.visits);
+
+    let current = null;
+    let sessionClicks = 0;
+    let introShown = false;
+
+    function saveState() {
+      localStorage.setItem("mixedSignalsTotalClicks", String(userState.totalClicks));
+      localStorage.setItem("mixedSignalsTagCounts", JSON.stringify(userState.tagCounts));
+    }
+
+    function dominantTag() {
+      let best = "neutral";
+      let max = -1;
+      for (const [tag, count] of Object.entries(userState.tagCounts)) {
+        if (count > max) {
+          max = count;
+          best = tag;
+        }
+      }
+      return best;
+    }
+
+    function getProfileLine() {
+      const tag = dominantTag();
+      const map = {
+        flirty: "noted: suggestive ambiguity works on you",
+        intellectual: "noted: intellectual bait remains effective",
+        suspicious: "noted: you respond to uncertainty",
+        unstable: "noted: chaotic options are performing well",
+        neutral: "noted: restraint appears intentional"
+      };
+      return map[tag];
+    }
+
+    function getSpecificLine() {
+      const options = [
+        "you keep selecting ambiguity",
+        "you favor uncertain outcomes",
+        "you respond well to mixed evidence",
+        "this is getting more specific than it should",
+        "you are not clicking randomly anymore",
+        getProfileLine()
+      ];
+      return options[Math.floor(Math.random() * options.length)];
+    }
+
+    function showWelcome() {
+      if (introShown) return;
+      introShown = true;
+
+      if (userState.visits === 1) {
+        text.textContent = "click";
+      } else if (userState.visits === 2) {
+        text.textContent = "welcome back";
+      } else if (userState.visits < 5) {
+        text.textContent = "repeat visitor detected";
+      } else {
+        text.textContent = "still evaluating?";
+      }
+    }
+
+    function chooseSignal() {
+      // 1 in 50 rare
+      if (Math.floor(Math.random() * 50) === 0) {
+        return rareSignals[Math.floor(Math.random() * rareSignals.length)];
+      }
+
+      // progressively more specific
+      if (sessionClicks >= 12 && Math.random() < 0.22) {
+        return {
+          text: getSpecificLine(),
+          url: "https://en.wikipedia.org/wiki/Pattern_recognition"
+        };
+      }
+
+      if (sessionClicks >= 6 && Math.random() < 0.16) {
+        const mediumSpecific = [
+          { text: "you stayed longer than expected", url: "https://en.wikipedia.org/wiki/Attention" },
+          { text: "this is starting to look deliberate", url: "https://en.wikipedia.org/wiki/Intentionality" },
+          { text: "you seem responsive to uncertainty", url: "https://en.wikipedia.org/wiki/Uncertainty" },
+          { text: "you came here for a reason", url: "https://en.wikipedia.org/wiki/Motivation" }
+        ];
+        return mediumSpecific[Math.floor(Math.random() * mediumSpecific.length)];
+      }
+
+      return signals[Math.floor(Math.random() * signals.length)];
+    }
+
+    function nextSignal() {
+      current = chooseSignal();
+      text.textContent = current.text;
+
+      if (current.tag) {
+        userState.tagCounts[current.tag] += 1;
+      }
+
+      sessionClicks += 1;
+      userState.totalClicks += 1;
+      saveState();
+
+      button.textContent = labels[Math.floor(Math.random() * labels.length)];
+      button.style.display = "inline-block";
+    }
+
+    document.body.addEventListener("click", (e) => {
+      if (e.target.id === "learn") return;
+      nextSignal();
+    });
+
+    button.addEventListener("click", () => {
+      if (current) window.open(current.url, "_blank");
+    });
+
+    showWelcome();
+  </script>
+</body>
+</html>
